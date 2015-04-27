@@ -7,6 +7,10 @@ from tornado.httputil import HTTPHeaders
 
 
 class MindMeldClient():
+    """
+    A MindMeld Client for Tornado web server
+    """
+
     API_URL = "https://mindmeldv2.expectlabs.com"
 
     METHOD_POST = "POST"
@@ -17,6 +21,15 @@ class MindMeldClient():
         self.user_id = "15532"
         self.session_id = "379262"
 
+    # Get documents for a query by submitting a text entry
+    # and getting session documents
+    @gen.coroutine
+    def get_documents(self, query):
+        text_entry_id = yield self.post_text_entry(query)
+        mm_documents = yield self.get_session_documents(text_entry_id)
+        return mm_documents
+
+    # Post a text entry to the MM API & return the text entry id
     @gen.coroutine
     def post_text_entry(self, text):
         print("posting text entry: {}".format(text))
@@ -34,6 +47,7 @@ class MindMeldClient():
         print("Posted, text_entry_id: {}".format(text_entry_id))
         return text_entry_id
 
+    # Given a text entry id, get session documents for the text entry
     @gen.coroutine
     def get_session_documents(self, text_entry_id):
         print("Getting session documents for text_entry: {}".format(text_entry_id))
@@ -45,10 +59,13 @@ class MindMeldClient():
         print("Received {} documents".format(len(documents)))
         return documents
 
+    # High-level wrapper for MM API. Accepts a method type path, and params
+    # Automatically handles setting token in header, encoding params &
+    # json decoding response
     @gen.coroutine
     def call_api(self, method_type, path, params=None):
         mm_auth_headers = HTTPHeaders({
-            "X-MindMeld-Access-Token": "ef0bc6f3ab1198717edad1b2c75faee01a7bc7bb"
+            "X-MindMeld-Access-Token": self.token
         })
 
         full_url = "{api_url}/{path}".format(
@@ -75,8 +92,4 @@ class MindMeldClient():
         json_response = json.loads(raw_body)
         return json_response
 
-    @gen.coroutine
-    def get_documents(self, query):
-        text_entry_id = yield self.post_text_entry(query)
-        mm_documents = yield self.get_session_documents(text_entry_id)
-        return mm_documents
+

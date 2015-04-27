@@ -5,6 +5,7 @@ from slack_handler import SlackHandler
 import os
 
 
+# Creates Tornado Application w/ Routes
 def make_app():
     return Application(
         [
@@ -13,6 +14,7 @@ def make_app():
     )
 
 
+# Initializes Tornado server
 def main():
     app = make_app()
     port = int(os.environ.get("PORT", 8000))

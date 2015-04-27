@@ -8,22 +8,13 @@ from mindmeld_client import MindMeldClient
 
 
 class SlackHandler(RequestHandler):
-    @gen.coroutine
-    def get(self):
-        query = "movies starring tom hanks"
-        mm = MindMeldClient()
-        documents = yield mm.get_documents(query)
+    """
+    Request handler for incoming messages from slack
+    """
 
-        slack_response = "Query: {}\n".format(query)
-        for i in range(len(documents)):
-            slack_response += "{num}. {title}\n".format(
-                num=i + 1,
-                title=documents[i]["title"]
-            )
-
-        self.write(slack_response)
-        self.finish()
-
+    # Called by slack when a user types '/mm <query'
+    # Parses request, gets documents from MM, and posts
+    # a message to slack
     @gen.coroutine
     def post(self):
         # Get slack request parameters
@@ -48,6 +39,7 @@ class SlackHandler(RequestHandler):
         yield self.post_to_slack(slack_response)
         self.finish()
 
+    # Posts a message to the #ask-mm slack channel
     @gen.coroutine
     def post_to_slack(self, message):
         slack_body = json.dumps({
@@ -62,3 +54,22 @@ class SlackHandler(RequestHandler):
         http_client = AsyncHTTPClient()
         yield http_client.fetch(slack_request)
         print("posted")
+
+    # Handler called when calling GET /. Not used in prod,
+    # only for debugging & testing locally
+    @gen.coroutine
+    def get(self):
+        query = "movies starring tom hanks"
+        mm = MindMeldClient()
+        documents = yield mm.get_documents(query)
+
+        slack_response = "Query: {}\n".format(query)
+        for i in range(len(documents)):
+            slack_response += "{num}. {title}\n".format(
+                num=i + 1,
+                title=documents[i]["title"]
+            )
+
+        self.write(slack_response)
+        self.finish()
+
