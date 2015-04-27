@@ -5,6 +5,7 @@ from tornado.httputil import HTTPHeaders
 from tornado import gen
 import json
 from urllib import parse
+import os
 
 
 class MindMeldClient():
@@ -157,7 +158,8 @@ def make_app():
 
 def main():
 	app = make_app()
-	app.listen(8000)
+	port = int(os.environ.get("PORT", 8000))
+	app.listen(port)
 	IOLoop.current().start()
 
 
