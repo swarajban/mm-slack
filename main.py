@@ -21,7 +21,7 @@ class MindMeldClient():
 
 	@gen.coroutine
 	def post_text_entry(self, text):
-
+		print("posting text entry: {}".format(text))
 		path = "/session/{session_id}/textentries".format(
 			session_id=self.session_id
 		)
@@ -32,16 +32,29 @@ class MindMeldClient():
 			"weight": 1
 		}
 		response = yield self.call_api(MindMeldClient.METHOD_POST, path, text_entry_body)
-		return response["data"]["textentryid"]
+		text_entry_id = response["data"]["textentryid"]
+		print("Posted, text_entry_id: {}".format(text_entry_id))
+		return text_entry_id
+
+	@gen.coroutine
+	def get_session_documents(self, text_entry_id):
+		print("Getting session documents for text_entry: {}".format(text_entry_id))
+		path = "/session/{session_id}/documents".format(
+			session_id=self.session_id
+		)
+		response = yield self.call_api(MindMeldClient.METHOD_GET, path)
+		documents = response["data"]
+		print("Received {} documents".format(len(documents)))
+		return documents
 
 
 	@gen.coroutine
-	def call_api(self, method_type, path, params):
+	def call_api(self, method_type, path, params=None):
 		mm_auth_headers = HTTPHeaders({
 			"X-MindMeld-Access-Token": "ef0bc6f3ab1198717edad1b2c75faee01a7bc7bb"
 		})
 
-		url = "{api_url}/{path}".format(
+		full_url = "{api_url}/{path}".format(
 			api_url=MindMeldClient.API_URL,
 			path=path
 		)
@@ -49,13 +62,13 @@ class MindMeldClient():
 		body = None
 		if params is not None:
 			if method_type == MindMeldClient.METHOD_GET:
-				url += "?" + parse.urlencode(params)
+				full_url += "?" + parse.urlencode(params)
 			elif method_type == MindMeldClient.METHOD_POST:
 				body = json.dumps(params)
 
 		api_request = HTTPRequest(
 			headers=mm_auth_headers,
-			url=url,
+			url=full_url,
 			method=method_type,
 			body=body
 		)
@@ -71,18 +84,8 @@ class MindMeldClient():
 	@gen.coroutine
 	def get_documents(self, query):
 		text_entry_id = yield self.post_text_entry(query)
-
-		print("Text Entry ID: {}".format(text_entry_id))
-
-		mock_documents = [
-			{
-				"title": "Apollo 13"
-			},
-			{
-				"title": "Saving Private Ryan"
-			}
-		]
-		return mock_documents
+		mm_documents = yield self.get_session_documents(text_entry_id)
+		return mm_documents
 
 
 class SlackHandler(RequestHandler):
@@ -92,12 +95,37 @@ class SlackHandler(RequestHandler):
 		query = "movies starring tom hanks"
 		mm = MindMeldClient()
 		documents = yield mm.get_documents(query)
-		self.write(json.dumps(documents))
+
+		slack_response = "Query: {}\n".format(query)
+		for i in range(len(documents)):
+			slack_response += "{num}. {title}\n".format(
+				num=i+1,
+				title=documents[i]["title"]
+			)
+
+		self.write(slack_response)
 		self.finish()
 
+	@gen.coroutine
 	def post(self):
-		print("post")
-		self.write("MM response...")
+		slack_args = self.request.arguments
+		user_name = slack_args["user_name"][0].decode("utf-8")
+		query = slack_args["text"][0].decode("utf-8")
+
+		slack_response = "{user} asked MM \"{query}\"\n".format(
+			user=user_name,
+			query=query
+		)
+		mm = MindMeldClient()
+		documents = yield mm.get_documents(query)
+		for i in range(len(documents)):
+			slack_response += "{num}. {title}\n".format(
+				num=i+1,
+				title=documents[i]["title"]
+			)
+
+		self.write(slack_response)
+		self.finish()
 
 
 def make_app():
@@ -116,13 +144,4 @@ def main():
 
 if __name__ == "__main__":
 	main()
-
-# one-time
-# get an anon token: ef0bc6f3ab1198717edad1b2c75faee01a7bc7bb, userid: 15532
-# create a session: 379262
-
-#  on request
-# post text entry to session
-# get session documents
-# 	*delete text entry
-# write documents to response
+	
