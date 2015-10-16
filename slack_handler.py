@@ -45,6 +45,9 @@ class SlackHandler(RequestHandler):
         slack_body = json.dumps({
             "text": message
         })
+        slack_body = json.dumps({
+            "text": 'sup'
+        })
         slack_request = HTTPRequest(
             url="https://hooks.slack.com/services/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",
             method="POST",
