@@ -11,15 +11,15 @@ class MindMeldClient():
     A MindMeld Client for Tornado web server
     """
 
-    API_URL = "https://mindmeldv2.expectlabs.com"
+    API_URL = "https://api-west-dev-e.expectlabs.com"
 
     METHOD_POST = "POST"
     METHOD_GET = "GET"
 
     def __init__(self):
-        self.token = "ef0bc6f3ab1198717edad1b2c75faee01a7bc7bb"
-        self.user_id = "15532"
-        self.session_id = "379262"
+        self.token = "13c712a4d9476f54549a62f66972025116cdb433"
+        self.user_id = "1514"
+        self.session_id = "567873"
 
     # Get documents for a query by submitting a text entry
     # and getting session documents
